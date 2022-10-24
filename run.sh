@@ -1,4 +1,4 @@
 #!/bin/bash
 
 
-echo "cd ./os && make qemu && exit" | singularity shell xv6-tools_buildx-latest.sif
+echo "cd os && make " $1 | singularity shell xv6-tools_buildx-latest.sif
