@@ -31,22 +31,29 @@ Header *more_mem(int size){
         return get_mem; // return used_block with head 
 
     }else{ // else shrink free block (split into free and used parts)
-        printf("here\n");
-        get_mem->size -= (size); // n_pages - size
-        printf("here2\n");
-        void *used_block = ((void *) get_mem); // cast to allow for pointer arithmetic
-        printf("here3\n");
-        used_block += (n_pages) - (get_mem->size); // move to new block
-        printf("here4\n");
-        get_mem->next_head = ((Header *) used_block); // connect last free block to last used block
-        printf("here5\n");
-        ((Header *)used_block)->next_head = NULL; // connect last used block to end
-        printf("here6\n");
+        return butcher(get_mem, size, n_pages);
+    }
+}
+
+// cut big block into free and used blocks AND connect them to the list
+Header *butcher(Header *big_block, int using_size, int big_block_size){
+    // printf("here\n");
+        big_block->size -= (using_size); // cut big block size by used_size
+        // printf("here2\n");
+        void *used_block = ((void *) big_block); // cast to allow for pointer arithmetic (+1 == +1 bit)
+        // printf("here3\n");
+        used_block += (big_block_size) - (big_block->size); // move to new block
+        // printf("here4\n");
+        big_block->next_head = ((Header *) used_block); // connect last free block to last used block
+        // printf("here5\n");
+        ((Header *)used_block)->next_head   = NULL; // connect last used block to end
+        // printf("here6\n");
+        ((Header *)used_block)->size        = using_size;
+        // printf("here 7\n");
 
         // todo: free(gotten_mem) to potentially connect free section with previous free block
 
         return ((Header *) used_block); // return used_block with head
-    }
 }
 
 void *_malloc(int size){
@@ -91,6 +98,8 @@ int main (int argc, void **argv){
     // // printf("test2: %x\n", test2);
     // printf("test3: %x\n", test3);
     
+
+    // test more mem
     printf("header size: %x\n", sizeof(Header));
     printf("header ptr size: %x\n", sizeof(Header *));
     printf("complete 1, %x\n", more_mem(116));
