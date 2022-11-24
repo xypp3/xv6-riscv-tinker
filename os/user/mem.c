@@ -3,53 +3,50 @@
 static Header *base_head = NULL; // empty starting list of free and used blocks
 
 Header *more_mem(int size){
-    unsigned int n_pages_in_bytes = ((size/PAGE_SIZE) + 1) * PAGE_SIZE; // request at least one page as it is smallest addressable block of mem
+    // user requested size + sizeof(Header) is assumed
+    int n_pages = ( ( size / PAGE_SIZE ) + 1 ) * PAGE_SIZE; // Min number of FULL pages needed for storing size
 
-    Header *appended_block = (Header *) sbrk(n_pages_in_bytes);
-    if(appended_block == NULL)
+    // sbrk
+    Header *get_mem = (Header *) sbrk(n_pages);
+    printf("--%x--", get_mem);
+    // sbrk check
+    if (((void *) get_mem) == ((void *)-1)){
+        // printf("TOO MANY PAGES");
         return NULL;
-
-    // find end of list and append block
-    Header *curr_ptr = base_head;
-    printf("3:%x\n", curr_ptr);
-    while(curr_ptr->next_head != NULL){
-        curr_ptr = curr_ptr->next_head;
     }
-    // curr_ptr == last element in list
-    if (size == n_pages_in_bytes){
-        curr_ptr->next_head        = appended_block; // link to end of list
-        appended_block->next_head  = NULL; // make it new end of list
-        appended_block->size       = size; // set size of (new block(s) - malloc_used_block_size)
-    }else{
-        printf("1:append_ptr: %x, sbrk: %d\n", appended_block, n_pages_in_bytes);
-        printf("2: c-%x, a-%x, as-%d, cs-%d\n", curr_ptr, appended_block, appended_block->size, size);
-        // appended_block             += appended_block->size; // move to malloc_used_block 
-        // appended_block->size        = size - sizeof(Header); // set size of  
 
-        // for (int i = 0; i < n_pages_in_bytes; i++){
-        //     int add = i/2;
-        //     (appended_block+add)->size = 1;
-        //     printf("%d-> %x\n", i, appended_block+add);
-        // }
+    // find end of list
+    Header *iter_ptr = base_head;
+    while (iter_ptr->next_head != NULL)
+        iter_ptr = iter_ptr->next_head;
+    // cast new block and do basic operations
+    // Header *gotten_mem = (Header *) (get_mem);
+    iter_ptr->next_head = get_mem;
+    get_mem->size = n_pages;
+
+    // if sbrk block size == free block size
+    if (get_mem->size == size){
+        get_mem->next_head = NULL;
         
+        return get_mem; // return used_block with head 
 
-        Header *used_block = (Header *) ( appended_block->size - size + ((void *)appended_block) );
-        // // printf("%x\n", appended_block->size+appended_block);
-        printf("used ptr: %x, used size: %d\n", used_block, appended_block->size-size);
-        // (appended_block+new_size)->size = size;
+    }else{ // else shrink free block (split into free and used parts)
+        printf("here\n");
+        get_mem->size -= (size); // n_pages - size
+        printf("here2\n");
+        void *used_block = ((void *) get_mem); // cast to allow for pointer arithmetic
+        printf("here3\n");
+        used_block += (n_pages) - (get_mem->size); // move to new block
+        printf("here4\n");
+        get_mem->next_head = ((Header *) used_block); // connect last free block to last used block
+        printf("here5\n");
+        ((Header *)used_block)->next_head = NULL; // connect last used block to end
+        printf("here6\n");
 
-        printf("4: c-%x, a-%x, as-%d, cs-%d\n", curr_ptr, appended_block, appended_block->size, size);
+        // todo: free(gotten_mem) to potentially connect free section with previous free block
 
-        // set free
-        // used_block->is_free     = FALSE;
-        printf("pls\n");
-        appended_block->is_free = TRUE;
-        printf("here!!!!!!\n");
+        return ((Header *) used_block); // return used_block with head
     }
-    
-    
-
-    return appended_block; //start of malloc_used_block
 }
 
 void *_malloc(int size){
@@ -58,47 +55,8 @@ void *_malloc(int size){
         return NULL;
     }
     // start malloc from here
-    Header * iter_ptr;
 
-    unsigned int requested_size = size + sizeof(Header);  
 
-    // if list not created, then create it
-    if( base_head == NULL){
-        base_head = (Header *) sbrk(sizeof(Header));
-        // if more_mem errors, return NULL
-        if (base_head == NULL)
-            return NULL;
-
-        base_head->next_head    = NULL; // base_head starts off as circular  
-        base_head->size         = sizeof(Header);
-        base_head->is_free      = FALSE;
-    }
-
-    iter_ptr = base_head->next_head; // start at base_head
-    printf("%x\n", iter_ptr);
-    while (iter_ptr != NULL && iter_ptr->is_free == TRUE){
-        if(iter_ptr->size >= requested_size)
-            break; // as iter_ptr is free block of right size
-        iter_ptr = iter_ptr->next_head; // increment through list
-        printf("hi\n");
-    }
- 
-    if(iter_ptr == NULL){
-        return (void *) (more_mem(requested_size));
-    }else{ // found a free block of big ENOUGH
-        printf("1: %d\n", iter_ptr->size);
-        iter_ptr->size     -= requested_size;
-        printf("2\n");
-        Header *used_block  = ((void *) iter_ptr) + iter_ptr->size;
-        printf("here: %x", used_block);
-        // used_block->is_free = FALSE;
-        // used_block->size    = requested_size;
-        // // unlink and link the list (iter_ptr --> used_block --> iter_ptr.next_head)
-        // used_block->next_head   = iter_ptr->next_head; // 
-        // iter_ptr->next_head     = used_block;
-        
-        // return (void *) (used_block + 1);
-    }
 
     return NULL;
 }
@@ -116,20 +74,30 @@ void  _free(void *ptr){
 int main (int argc, void **argv){
 
     printf("runs\n");
+    base_head = (Header *) sbrk(sizeof(Header));
+    base_head->next_head = NULL;
 
-    void* test = _malloc(200);
-    // todo test free here
-    // void* test1 = _malloc(PAGE_SIZE-(200+32) );
-    // void* test2 = _malloc(50000);
-    void* test3 = _malloc(100);
+    // void* test = _malloc(200);
+    // // todo test free here
+    // // void* test1 = _malloc(PAGE_SIZE-(200+32) );
+    // // void* test2 = _malloc(50000);
+    // void* test3 = _malloc(100);
 
 
     
-    printf("head: %x, next: %x\n", base_head, base_head->next_head);
-    printf("test: %x\n", test);
-    // printf("test1: %x\n", test1);
-    // printf("test2: %x\n", test2);
-    printf("test3: %x\n", test3);
+    // printf("head: %x, next: %x\n", base_head, base_head->next_head);
+    // printf("test: %x\n", test);
+    // // printf("test1: %x\n", test1);
+    // // printf("test2: %x\n", test2);
+    // printf("test3: %x\n", test3);
+    
+    printf("header size: %x\n", sizeof(Header));
+    printf("header ptr size: %x\n", sizeof(Header *));
+    printf("complete 1, %x\n", more_mem(116));
+    // printf("complete 2, %x\n", more_mem(0));
+    printf("complete 3, %x\n", more_mem(9000));
+    printf("complete 4, %x\n", more_mem(1));
+    
 
 
     return 0;
