@@ -2,15 +2,19 @@
 #include "user/user.h"
 
 // define vars and data structs
-#define PAGE_SIZE 4096
-#define NULL      (void *) 0
+#define PAGE_SIZE   4096
+#define NULL        (void *) 0
+#define TRUE        1
+#define FALSE       0
 
+// linked list struct
 typedef struct h {
-    struct h *nextHeader;
+    struct h *next_head;
+    char is_free; //boolean 
     unsigned size; // size of this memory block
 } Header;
 
 // defined methods
-int main (int argc, void **argv);
 void *_malloc(int size);
 void  _free(void *ptr);
+Header *more_mem(int size);
