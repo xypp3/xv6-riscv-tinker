@@ -3,7 +3,7 @@
 static Header *base_head = NULL; // empty starting list of free and used blocks
 
 Header *more_mem(int size){
-    // user requested size + sizeof(Header) is assumed
+    // user requested size + ( 2*sizeof(Header) ) is assumed
     int n_pages = ( ( size / PAGE_SIZE ) + 2 ) * PAGE_SIZE; 
         // Min number of FULL pages needed for storing size + 1 additional page 
             // (incase size is almost the size of the next closest page)
@@ -65,7 +65,7 @@ Header *butcher(Header *big_block, int using_size, Header * next_ptr){
 
 void *_malloc(int size){
     // sanity check
-    if( !( 0 < size  && size <= ( __INT32_MAX__ - sizeof(Header) ) ) ){
+    if( !( 0 < size  && size <= ( __INT32_MAX__ - 2*sizeof(Header) ) ) ){
         return NULL;
     }
     // start malloc from here
@@ -90,16 +90,24 @@ void  _free(void *ptr){
         return;
     
     // iterate through 
-    // Header *prev_ptr = base_head;
-    // Header *curr_ptr = base_head->next_head;
-    // while(curr_ptr != to_free){ // find the to_free pointer in the linked list
-    //     prev_ptr = curr_ptr;
-    //     curr_ptr = curr_ptr->next_head;
-    // }
+    Header *prev_ptr = base_head;
+    while(prev_ptr->next_head != to_free) // find the to_free pointer in the linked list
+        prev_ptr = prev_ptr->next_head;
 
-    // if previous and current free, merge
-    // if current and next free, merge
-    // else set to TRUE
+    // merge free block with previous free block
+    if(prev_ptr->is_free == TRUE){
+        prev_ptr->next_head = to_free->next_head;
+        prev_ptr->size     += sizeof(Header) + to_free->size; 
+    }else
+        to_free->is_free = TRUE; // will be start of merged free block
+
+    // if it isn't final block and you can merge with next block
+    if(to_free->next_head != NULL 
+        && to_free->next_head->is_free == TRUE
+        ){ 
+        to_free->size      += to_free->next_head->size + sizeof(Header); // increase size of to_free with right merged free block
+        to_free->next_head  = to_free->next_head->next_head; // link to_free with right.next_head
+    }
 }
 
 
@@ -147,3 +155,8 @@ int main (int argc, void **argv){
 
     return 0;
 }
+
+
+// header file TODOs
+// 1. How do you determine the size of a struct?
+//  a. should I make it a union with size long to stabilize size?
