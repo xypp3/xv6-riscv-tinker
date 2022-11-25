@@ -18,4 +18,4 @@ typedef struct h {
 void *_malloc(int size);
 void  _free(void *ptr);
 Header *more_mem(int size);
-Header *butcher(Header *big_block, int used_size, int big_block_size);
+Header *butcher(Header *big_block, int using_size, Header * next_ptr);
