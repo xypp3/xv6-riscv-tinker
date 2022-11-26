@@ -160,3 +160,7 @@ int main (int argc, void **argv){
 // header file TODOs
 // 1. How do you determine the size of a struct?
 //  a. should I make it a union with size long to stabilize size?
+
+// Normal TODOs
+// 1. In _free() make a condition if prev_ptr == NULL,
+//     then ptr given by user is not in heap
