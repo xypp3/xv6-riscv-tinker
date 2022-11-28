@@ -265,10 +265,6 @@ void  _free(void *ptr){
 
 #endif
 
-
-// .h file TODOs
-// 1. How do you determine the size of a struct?
-//  a. should I make it a union with size long to stabilize size?
-
 // .c file TODOs
 // 1. _free() doesn't have a way to verify void* can be cast to Header*
+// 2. malloc() won't fit a block that is sizeof(Header + BODY) as algo needs sizeof(2*Header + BODY)
