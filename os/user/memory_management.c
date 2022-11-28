@@ -23,16 +23,16 @@ Header *more_mem(int size){
 
     // find end of list
     Header *iter_ptr = base_head;
-    while (iter_ptr->next_head != NULL)
-        iter_ptr = iter_ptr->next_head;
+    while (iter_ptr->h.next_head != NULL)
+        iter_ptr = iter_ptr->h.next_head;
     // cast new block and do basic operations
     // Header *gotten_mem = (Header *) (get_mem);
-    iter_ptr->next_head = get_mem;
-    get_mem->size = n_pages;
+    iter_ptr->h.next_head = get_mem;
+    get_mem->h.size = n_pages;
 
     // if sbrk block size == free block size
-    if (get_mem->size == size){
-        get_mem->next_head = NULL;
+    if (get_mem->h.size == size){
+        get_mem->h.next_head = NULL;
         
         return get_mem; // return used_block with head 
 
@@ -41,33 +41,33 @@ Header *more_mem(int size){
 }
 
 // cut big block into free and used blocks AND connect them to the list
-    // assumes big_block->size > sizeof(Header)*2 + user requested size
+    // assumes big_block->h.size > sizeof(Header)*2 + user requested size
     // assumes using_size == user requested size + sizeof(Header)
 Header *butcher(Header *big_block, int using_size, void * next_ptr){
     // printf("here\n");
         void *used_block = ((void *) big_block); // cast to allow for pointer arithmetic (+1 == +1 bit)
         // printf("here2\n");
-        used_block      += (big_block->size) - (using_size); // move to new block
+        used_block      += (big_block->h.size) - (using_size); // move to new block
         // printf("used: %x", used_block);
         // printf("here3\n");
-        big_block->size -= using_size; 
+        big_block->h.size -= using_size; 
             // free_block.size == sizeof(Header) + sizeof(BODY) && sizeof(BODY) == big_block.size - using_size - sizeof(Header)
-        // big_block->size -= (using_size); // cut big block size by used_size
+        // big_block->h.size -= (using_size); // cut big block size by used_size
         // printf("here4\n");
-        big_block->next_head = ((Header *) used_block); // connect last free block to last used block
+        big_block->h.next_head = ((Header *) used_block); // connect last free block to last used block
         // printf("here5\n");
         // links with next block in list, which could be the end of the list
         if (next_ptr == NULL)
-            ((Header *)used_block)->next_head   = NULL; 
+            ((Header *)used_block)->h.next_head   = NULL; 
         else
-            ((Header *)used_block)->next_head   = ((Header *) next_ptr);
+            ((Header *)used_block)->h.next_head   = ((Header *) next_ptr);
         
         // printf("here6\n");
-        ((Header *)used_block)->size        = using_size - sizeof(Header);
+        ((Header *)used_block)->h.size        = using_size - sizeof(Header);
         // printf("here 7\n");
-        ((Header *)used_block)->is_free     = FALSE;
+        ((Header *)used_block)->h.is_free     = FALSE;
         
-        big_block->is_free = FALSE; // THIS GETS CHANGED BY _free()
+        big_block->h.is_free = FALSE; // THIS GETS CHANGED BY _free()
         _free(big_block + 1); // to potentially connect free section with previous free block
             // must free the body of big_block and not head
 
@@ -90,32 +90,32 @@ void *_malloc(int size){
         if (((void *) base_head) == ((void *)-1))
             return NULL;
 
-        base_head->next_head    = NULL;
-        base_head->is_free      = FALSE;
-        base_head->size         = sizeof(Header);
+        base_head->h.next_head    = NULL;
+        base_head->h.is_free      = FALSE;
+        base_head->h.size         = sizeof(Header);
 
     }
 
-    Header *iter_ptr    = base_head->next_head;
+    Header *iter_ptr    = base_head->h.next_head;
     Header *best_fit    = base_head;
-    best_fit->size      = __INT32_MAX__;
+    best_fit->h.size      = __INT32_MAX__;
     // main loop
     // printf("")
     while(iter_ptr != NULL){
-        if(iter_ptr->is_free == TRUE){
-            if(iter_ptr->size >= (size + (2*sizeof(Header)))
-                && best_fit->size > iter_ptr->size
+        if(iter_ptr->h.is_free == TRUE){
+            if(iter_ptr->h.size >= (size + (2*sizeof(Header)))
+                && best_fit->h.size > iter_ptr->h.size
                 ){
                     best_fit            = iter_ptr;
-                    best_fit->size      = iter_ptr->size;
-                    best_fit->next_head = iter_ptr->next_head;
+                    best_fit->h.size      = iter_ptr->h.size;
+                    best_fit->h.next_head = iter_ptr->h.next_head;
                 }
             #ifdef DEBUG
                 printf("free ptrs: %x\n", iter_ptr);
             #endif
         }
 
-        iter_ptr = iter_ptr->next_head;
+        iter_ptr = iter_ptr->h.next_head;
     }
 
     // if end of list reached and best_fit not re-assigned
@@ -123,7 +123,7 @@ void *_malloc(int size){
         return more_mem(size + (2*sizeof(Header))) + 1; // returns block without head
 
     else
-        return butcher(best_fit, size + sizeof(Header), (void *) best_fit->next_head) + 1; // returns block without head
+        return butcher(best_fit, size + sizeof(Header), (void *) best_fit->h.next_head) + 1; // returns block without head
 }
 
 
@@ -139,7 +139,7 @@ void  _free(void *ptr){
     Header *to_free = ((Header *) ptr) - 1; // should have size n stuff
 
     // if ptr is already free 
-    if (to_free->is_free == TRUE){
+    if (to_free->h.is_free == TRUE){
         #ifdef DEBUG
             printf("already freed\n");
         #endif
@@ -150,10 +150,10 @@ void  _free(void *ptr){
     // iterate through 
     Header *prev_ptr = base_head;
         // find the to_free pointer in the linked list (implied it cannot be the head)
-    while(prev_ptr->next_head != to_free && prev_ptr->next_head != NULL){
-        prev_ptr = prev_ptr->next_head;
+    while(prev_ptr->h.next_head != to_free && prev_ptr->h.next_head != NULL){
+        prev_ptr = prev_ptr->h.next_head;
         #ifdef DEBUG
-            printf("Is free: %d, %x\n", prev_ptr->is_free, prev_ptr);
+            printf("Is free: %d, %x\n", prev_ptr->h.is_free, prev_ptr);
         #endif
     }
 
@@ -167,12 +167,12 @@ void  _free(void *ptr){
     }
 
     // found and valid free block so free
-    to_free->is_free = TRUE;
+    to_free->h.is_free = TRUE;
     
     // merge free block with previous free block
-    if(prev_ptr->is_free == TRUE){
-        prev_ptr->next_head = to_free->next_head;
-        prev_ptr->size     += sizeof(Header) + to_free->size;
+    if(prev_ptr->h.is_free == TRUE){
+        prev_ptr->h.next_head = to_free->h.next_head;
+        prev_ptr->h.size     += sizeof(Header) + to_free->h.size;
         // Header *prev_ptr = base_head;
         // while (prev_ptr != NULL)
         //     prev_ptr = prev_ptr->next_head;
@@ -181,11 +181,11 @@ void  _free(void *ptr){
     }
 
     // if it isn't final block and you can merge with next block
-    if(to_free->next_head != NULL 
-        && to_free->next_head->is_free == TRUE
+    if(to_free->h.next_head != NULL 
+        && to_free->h.next_head->h.is_free == TRUE
         ){ 
-        to_free->size      += to_free->next_head->size + sizeof(Header); // increase size of to_free with right merged free block
-        to_free->next_head  = to_free->next_head->next_head; // link to_free with right.next_head
+        to_free->h.size      += to_free->h.next_head->h.size + sizeof(Header); // increase size of to_free with right merged free block
+        to_free->h.next_head  = to_free->h.next_head->h.next_head; // link to_free with right.next_head
     }
 
 }
@@ -196,54 +196,57 @@ void  _free(void *ptr){
         Header *iter_ptr = base_head;
         printf("%x ", iter_ptr);
         while(iter_ptr != NULL){
-            printf("--> %x:%d ", iter_ptr, iter_ptr->is_free);
-            iter_ptr = iter_ptr->next_head;
+            printf("--> %x:%d ", iter_ptr, iter_ptr->h.is_free);
+            iter_ptr = iter_ptr->h.next_head;
         }
         printf("\n");
     }
 
+    void free_test(){
 
-    int main (int argc, void **argv){
-
-        printf("runs\n");
-        // test free
+        // early exit conditions
         void * tf = (void *) 0xffff;
         void * tf2 = NULL;
         _free(tf);  // err: head not defined
         _free(tf2); // err: ptr == NULL
 
+        // merge tests
+        void* merge1 = _malloc(32);
+        void* merge2 = _malloc(32);
+        void* merge3 = _malloc(32);
+        void* merge4 = _malloc(8000);
 
-        // void * tf3 = (Header *) base_head;
-        // _free(tf3); // ptr not in heap or not HEADER convertable
-
-        void* test = _malloc(32);
-        printf("test: %x\n", test);
-        _free(test);
-        _free(test);
-        void* test1 = _malloc(32);
-        printf("test1: %x\n", test1);
-        void* test2 = _malloc(32);
-        printf("test2: %x\n", test2);
-        void* test3 = _malloc(8000);
-        printf("test3: %x\n", test3);
-        printf("head: %x, next: %x\n", base_head, base_head->next_head);
-
-        _free(test1);
+        // right merge 
+        printf("Right merge: %d\n", 1);
+        _free(merge1);
         printHeap();
-        printf("next test\n");
-        _free(test2);
+        _free(merge2);
         printHeap();
-        _free(test3);
+        // left merge
+        printf("Left merge: %d\n", 1);
+        _free(merge4);
+        printHeap();
+        // double merge
+        printf("Both merge: %d\n", 1);
+        _free(merge3);
         printHeap();
 
 
+    }
 
+    int main (int argc, void **argv){
+
+        printf("runs\n");
+        
+
+
+        free_test();
         
         
 
         // test more mem
         // base_head = (Header *) sbrk(sizeof(Header));
-        // base_head->next_head = NULL;
+        // base_head->h.next_head = NULL;
         // printf("header size: %x\n", sizeof(Header));
         // printf("header ptr size: %x\n", sizeof(Header *));
         // printf("complete 1, %x\n", more_mem(116));
@@ -252,7 +255,7 @@ void  _free(void *ptr){
         //     Header *n = more_mem(1000000);
         //     if(n == NULL)
         //         break;
-        //     printf("complete 3:%d, size:%d, next_size:%d, addr:%x\n", i, sizeof(n), sizeof(n->next_head), n );
+        //     printf("complete 3:%d, size:%d, next_size:%d, addr:%x\n", i, sizeof(n), sizeof(n->h.next_head), n );
         // }
         // printf("complete 4, %x\n", more_mem(1));
         

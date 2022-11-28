@@ -8,11 +8,18 @@
 #define FALSE       0
 
 // linked list struct
-typedef struct h {
-    struct h *next_head;
-    char is_free; //boolean 
-    unsigned size; // size of this memory block
+typedef union header{
+    struct h
+    {
+        union header *next_head;
+        char is_free;
+        unsigned size;
+    }h;
+    
+    uint16 sizeAlignment; // not used, just to set consistant size of header
+
 } Header;
+
 
 // defined methods
 void *_malloc(int size);
