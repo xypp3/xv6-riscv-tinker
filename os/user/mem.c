@@ -10,7 +10,7 @@ Header *more_mem(int size){
 
     // sbrk
     Header *get_mem = (Header *) sbrk(n_pages);
-    printf("--%x--", get_mem);
+    printf("--%x--\n", get_mem);
     // sbrk check (not enough physical memory)
     if (((void *) get_mem) == ((void *)-1))
         return NULL;
@@ -31,7 +31,7 @@ Header *more_mem(int size){
         return get_mem; // return used_block with head 
 
     }else // else trunkate free block (cut into free and used parts)
-        return butcher(get_mem, size, NULL);
+        return butcher(get_mem, size-sizeof(Header), NULL);
 }
 
 // cut big block into free and used blocks AND connect them to the list
@@ -42,9 +42,10 @@ Header *butcher(Header *big_block, int using_size, void * next_ptr){
         void *used_block = ((void *) big_block); // cast to allow for pointer arithmetic (+1 == +1 bit)
         // printf("here2\n");
         used_block      += (big_block->size) - (using_size); // move to new block
+        // printf("used: %x", used_block);
         // printf("here3\n");
-        big_block->size -= using_size - sizeof(Header); 
-            // free_block.size == sizeof(Header) + sizeof(BODY) && sizeof(BODY) == big_block.size - using_size
+        big_block->size -= using_size; 
+            // free_block.size == sizeof(Header) + sizeof(BODY) && sizeof(BODY) == big_block.size - using_size - sizeof(Header)
         // big_block->size -= (using_size); // cut big block size by used_size
         // printf("here4\n");
         big_block->next_head = ((Header *) used_block); // connect last free block to last used block
@@ -56,11 +57,11 @@ Header *butcher(Header *big_block, int using_size, void * next_ptr){
             ((Header *)used_block)->next_head   = ((Header *) next_ptr);
         
         // printf("here6\n");
-        ((Header *)used_block)->size        = using_size;
+        ((Header *)used_block)->size        = using_size - sizeof(Header);
         // printf("here 7\n");
         ((Header *)used_block)->is_free     = FALSE;
         
-        big_block->is_free = FALSE; // THIS GETS CHANGED BY 
+        big_block->is_free = FALSE; // THIS GETS CHANGED BY _free()
         _free(big_block + 1); // to potentially connect free section with previous free block
             // must free the body of big_block and not head
 
@@ -113,7 +114,7 @@ void *_malloc(int size){
         return more_mem(size + (2*sizeof(Header))) + 1; // returns block without head
 
     else
-        return butcher(best_fit, size + sizeof(Header), (void *) best_fit->next_head) + 1;
+        return butcher(best_fit, size + sizeof(Header), (void *) best_fit->next_head) + 1; // returns block without head
 }
 
 
@@ -127,13 +128,15 @@ void  _free(void *ptr){
     Header *to_free = ((Header *) ptr) - 1; // should have size n stuff
 
     // if ptr is already free 
-    if (to_free->is_free == TRUE)
+    if (to_free->is_free == TRUE){
+        printf("already freed\n");
         return;
+    }
 
     // iterate through 
     Header *prev_ptr = base_head;
         // find the to_free pointer in the linked list (implied it cannot be the head)
-    while(prev_ptr->next_head != to_free && prev_ptr->next_head != NULL) 
+    while(prev_ptr->next_head != to_free && prev_ptr->next_head != NULL)
         prev_ptr = prev_ptr->next_head;
 
     // if to_free is not in heap but is a valid Header *
@@ -141,13 +144,19 @@ void  _free(void *ptr){
         printf("ptr is not in heap or ptr == base_head");
         return;
     }
+
+    // found and valid free block so free
+    to_free->is_free = TRUE;
     
     // merge free block with previous free block
     if(prev_ptr->is_free == TRUE){
         prev_ptr->next_head = to_free->next_head;
-        prev_ptr->size     += sizeof(Header) + to_free->size; 
-    }else
-        to_free->is_free = TRUE; // will be start of merged free block
+        prev_ptr->size     += sizeof(Header) + to_free->size;
+        Header *prev_ptr = base_head;
+        while (prev_ptr != NULL)
+            prev_ptr = prev_ptr->next_head;
+        
+    }
 
     // if it isn't final block and you can merge with next block
     if(to_free->next_head != NULL 
@@ -156,6 +165,7 @@ void  _free(void *ptr){
         to_free->size      += to_free->next_head->size + sizeof(Header); // increase size of to_free with right merged free block
         to_free->next_head  = to_free->next_head->next_head; // link to_free with right.next_head
     }
+
 }
 
 
@@ -174,17 +184,18 @@ int main (int argc, void **argv){
 
     void* test = _malloc(32);
     printf("test: %x\n", test);
+    _free(test);
     // _free(test);
     void* test1 = _malloc(32);
+    printf("test1: %x\n", test1);
     void* test2 = _malloc(32);
+    printf("test2: %x\n", test2);
     void* test3 = _malloc(8000);
+    printf("test3: %x\n", test3);
+    printf("head: %x, next: %x\n", base_head, base_head->next_head);
 
 
     
-    printf("head: %x, next: %x\n", base_head, base_head->next_head);
-    printf("test1: %x\n", test1);
-    printf("test2: %x\n", test2);
-    printf("test3: %x\n", test3);
     
 
     // test more mem
