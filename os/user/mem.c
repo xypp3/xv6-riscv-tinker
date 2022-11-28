@@ -94,6 +94,11 @@ void  _free(void *ptr){
     while(prev_ptr->next_head != to_free) // find the to_free pointer in the linked list
         prev_ptr = prev_ptr->next_head;
 
+    // if to_free is not in heap
+    if (prev_ptr == NULL)
+        return;
+    
+
     // merge free block with previous free block
     if(prev_ptr->is_free == TRUE){
         prev_ptr->next_head = to_free->next_head;
