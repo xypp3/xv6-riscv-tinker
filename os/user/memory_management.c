@@ -44,32 +44,27 @@ Header *more_mem(int size){
     // assumes big_block->h.size > sizeof(Header)*2 + user requested size
     // assumes using_size == user requested size + sizeof(Header)
 Header *butcher(Header *big_block, int using_size, void * next_ptr){
-    // printf("here\n");
         void *used_block = ((void *) big_block); // cast to allow for pointer arithmetic (+1 == +1 bit)
-        // printf("here2\n");
         used_block      += (big_block->h.size) - (using_size); // move to new block
-        // printf("used: %x", used_block);
-        // printf("here3\n");
-        big_block->h.size -= using_size; 
-            // free_block.size == sizeof(Header) + sizeof(BODY) && sizeof(BODY) == big_block.size - using_size - sizeof(Header)
-        // big_block->h.size -= (using_size); // cut big block size by used_size
-        // printf("here4\n");
+        big_block->h.size -= using_size; // change free block size
         big_block->h.next_head = ((Header *) used_block); // connect last free block to last used block
-        // printf("here5\n");
+
         // links with next block in list, which could be the end of the list
         if (next_ptr == NULL)
             ((Header *)used_block)->h.next_head   = NULL; 
         else
             ((Header *)used_block)->h.next_head   = ((Header *) next_ptr);
         
-        // printf("here6\n");
         ((Header *)used_block)->h.size        = using_size - sizeof(Header);
-        // printf("here 7\n");
         ((Header *)used_block)->h.is_free     = FALSE;
         
-        big_block->h.is_free = FALSE; // THIS GETS CHANGED BY _free()
-        _free(big_block + 1); // to potentially connect free section with previous free block
-            // must free the body of big_block and not head
+        // if next ptr is null then it assumes that it's a call made by more_mem() 
+            // and you want to combine new block with previous free blocks if need be
+        if(next_ptr == NULL){
+            big_block->h.is_free = FALSE; // THIS GETS CHANGED BY _free()
+            _free(big_block + 1); // to potentially connect free section with previous free block
+                // must free the body of big_block and not head
+        }
 
         return ((Header *) used_block); // return used_block with head
 }
@@ -99,8 +94,7 @@ void *_malloc(int size){
     Header *iter_ptr    = base_head->h.next_head;
     Header *best_fit    = base_head;
     best_fit->h.size      = __INT32_MAX__;
-    // main loop
-    // printf("")
+    // main loop (for every element on the list)
     while(iter_ptr != NULL){
         if(iter_ptr->h.is_free == TRUE){
             if(iter_ptr->h.size >= (size + (2*sizeof(Header)))
@@ -173,9 +167,6 @@ void  _free(void *ptr){
     if(prev_ptr->h.is_free == TRUE){
         prev_ptr->h.next_head = to_free->h.next_head;
         prev_ptr->h.size     += sizeof(Header) + to_free->h.size;
-        // Header *prev_ptr = base_head;
-        // while (prev_ptr != NULL)
-        //     prev_ptr = prev_ptr->next_head;
         to_free = prev_ptr; // set free block to left most block
         
     }
