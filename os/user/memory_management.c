@@ -1,6 +1,6 @@
 #include "memory_management.h"
 
-// #define DEBUG
+#define DEBUG
 
 static Header *base_head = NULL; // empty starting list of free and used blocks
 
@@ -110,6 +110,9 @@ void *_malloc(int size){
                     best_fit->size      = iter_ptr->size;
                     best_fit->next_head = iter_ptr->next_head;
                 }
+            #ifdef DEBUG
+                printf("free ptrs: %x\n", iter_ptr);
+            #endif
         }
 
         iter_ptr = iter_ptr->next_head;
@@ -147,13 +150,17 @@ void  _free(void *ptr){
     // iterate through 
     Header *prev_ptr = base_head;
         // find the to_free pointer in the linked list (implied it cannot be the head)
-    while(prev_ptr->next_head != to_free && prev_ptr->next_head != NULL)
+    while(prev_ptr->next_head != to_free && prev_ptr->next_head != NULL){
         prev_ptr = prev_ptr->next_head;
+        #ifdef DEBUG
+            printf("Is free: %d, %x\n", prev_ptr->is_free, prev_ptr);
+        #endif
+    }
 
     // if to_free is not in heap but is a valid Header *
     if (prev_ptr == NULL){
         #ifdef DEBUG
-            printf("ptr is not in heap or ptr == base_head");
+            printf("ptr is not in heap or ptr == base_head\n");
         #endif
 
         return;
@@ -166,9 +173,10 @@ void  _free(void *ptr){
     if(prev_ptr->is_free == TRUE){
         prev_ptr->next_head = to_free->next_head;
         prev_ptr->size     += sizeof(Header) + to_free->size;
-        Header *prev_ptr = base_head;
-        while (prev_ptr != NULL)
-            prev_ptr = prev_ptr->next_head;
+        // Header *prev_ptr = base_head;
+        // while (prev_ptr != NULL)
+        //     prev_ptr = prev_ptr->next_head;
+        to_free = prev_ptr; // set free block to left most block
         
     }
 
@@ -183,6 +191,18 @@ void  _free(void *ptr){
 }
 
 #ifdef DEBUG
+
+    void printHeap(){
+        Header *iter_ptr = base_head;
+        printf("%x ", iter_ptr);
+        while(iter_ptr != NULL){
+            printf("--> %x:%d ", iter_ptr, iter_ptr->is_free);
+            iter_ptr = iter_ptr->next_head;
+        }
+        printf("\n");
+    }
+
+
     int main (int argc, void **argv){
 
         printf("runs\n");
@@ -199,7 +219,7 @@ void  _free(void *ptr){
         void* test = _malloc(32);
         printf("test: %x\n", test);
         _free(test);
-        // _free(test);
+        _free(test);
         void* test1 = _malloc(32);
         printf("test1: %x\n", test1);
         void* test2 = _malloc(32);
@@ -207,6 +227,15 @@ void  _free(void *ptr){
         void* test3 = _malloc(8000);
         printf("test3: %x\n", test3);
         printf("head: %x, next: %x\n", base_head, base_head->next_head);
+
+        _free(test1);
+        printHeap();
+        printf("next test\n");
+        _free(test2);
+        printHeap();
+        _free(test3);
+        printHeap();
+
 
 
         
@@ -230,6 +259,7 @@ void  _free(void *ptr){
 
         return 0;
     }
+
 #endif
 
 
