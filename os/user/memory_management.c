@@ -164,7 +164,8 @@ void  _free(void *ptr){
     to_free->h.is_free = TRUE;
     
     // merge free block with previous free block
-    if(prev_ptr->h.is_free == TRUE){
+    if(prev_ptr->h.is_free == TRUE
+        ){
         prev_ptr->h.next_head = to_free->h.next_head;
         prev_ptr->h.size     += sizeof(Header) + to_free->h.size;
         to_free = prev_ptr; // set free block to left most block
@@ -187,7 +188,7 @@ void  _free(void *ptr){
         Header *iter_ptr = base_head;
         printf("%x ", iter_ptr);
         while(iter_ptr != NULL){
-            printf("--> %x:%d ", iter_ptr, iter_ptr->h.is_free);
+            printf("--> %x-S%d-F%d ", iter_ptr, iter_ptr->h.size, iter_ptr->h.is_free);
             iter_ptr = iter_ptr->h.next_head;
         }
         printf("\n");
@@ -205,20 +206,20 @@ void  _free(void *ptr){
         void* merge1 = _malloc(32);
         void* merge2 = _malloc(32);
         void* merge3 = _malloc(32);
-        void* merge4 = _malloc(8000);
+        void* merge4 = _malloc(8016);
 
         // right merge 
-        printf("Right merge: %d\n", 1);
+        printf("-------------- Right merge: %d\n\n", 1);
         _free(merge1);
         printHeap();
         _free(merge2);
         printHeap();
         // left merge
-        printf("Left merge: %d\n", 1);
+        printf("Left merge: %d\n\n", 1);
         _free(merge4);
         printHeap();
         // double merge
-        printf("Both merge: %d\n", 1);
+        printf("Both merge: %d\n\n", 1);
         _free(merge3);
         printHeap();
 
@@ -259,3 +260,4 @@ void  _free(void *ptr){
 // .c file TODOs
 // 1. _free() doesn't have a way to verify void* can be cast to Header*
 // 2. malloc() won't fit a block that is sizeof(Header + BODY) as algo needs sizeof(2*Header + BODY)
+// 3. _free() blocks should only merge if they are contiguous in virtual memoray address space and so by implication are contiguous in the linked list
