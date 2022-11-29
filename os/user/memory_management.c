@@ -165,17 +165,21 @@ void  _free(void *ptr){
     
     // merge free block with previous free block
     if(prev_ptr->h.is_free == TRUE
+        && ((void *)prev_ptr) + prev_ptr->h.size == to_free 
         ){
         prev_ptr->h.next_head = to_free->h.next_head;
         prev_ptr->h.size     += sizeof(Header) + to_free->h.size;
         to_free = prev_ptr; // set free block to left most block
-        
     }
 
+    // head size is accounted for if already did left merge so don't add to calculation for right merge
+    int optional_head = (prev_ptr->h.is_free == FALSE) * sizeof(Header);
     // if it isn't final block and you can merge with next block
     if(to_free->h.next_head != NULL 
         && to_free->h.next_head->h.is_free == TRUE
+        && ((void *)to_free) + to_free->h.size + optional_head == to_free->h.next_head
         ){ 
+        printf("here");
         to_free->h.size      += to_free->h.next_head->h.size + sizeof(Header); // increase size of to_free with right merged free block
         to_free->h.next_head  = to_free->h.next_head->h.next_head; // link to_free with right.next_head
     }
