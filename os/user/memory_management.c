@@ -1,6 +1,6 @@
 #include "memory_management.h"
 
-#define DEBUG
+//#define DEBUG
 
 static Header *base_head = NULL; // empty starting list of free and used blocks
 
@@ -264,4 +264,3 @@ void  _free(void *ptr){
 // .c file TODOs
 // 1. _free() doesn't have a way to verify void* can be cast to Header*
 // 2. malloc() won't fit a block that is sizeof(Header + BODY) as algo needs sizeof(2*Header + BODY)
-// 3. _free() blocks should only merge if they are contiguous in virtual memoray address space and so by implication are contiguous in the linked list
